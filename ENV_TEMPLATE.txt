@@ -1,0 +1,22 @@
+# Environment Variables Template for Vercel Deployment
+# Copy these to your Vercel project settings under Environment Variables
+
+# Database Configuration (REQUIRED)
+DATABASE_URL=mysql://user:password@host:port/database
+# Example for PlanetScale: mysql://username:password@aws.connect.psdb.cloud/database?ssl={"rejectUnauthorized":true}
+# Example for Vercel Postgres: postgres://user:password@host/database
+
+# Authentication (REQUIRED)
+JWT_SECRET=your-secret-key-here-minimum-32-characters-long
+ADMIN_PASSWORD=dada2025
+
+# Application Settings (REQUIRED)
+OWNER_OPEN_ID=admin
+OWNER_NAME=Admin
+
+# Optional: AWS S3 for file storage (for PDF storage)
+# If you don't set these, PDF generation will still work but files won't be stored
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your-bucket-name
