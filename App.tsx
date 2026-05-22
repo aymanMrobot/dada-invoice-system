@@ -1,17 +1,17 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
-import Login from "@/pages/Login";
+import NotFound from "./NotFound";
+import Login from "./Login";
 import { Route, Switch } from "wouter";
-import { useSimpleAuth } from "@/hooks/useSimpleAuth";
+import { useSimpleAuth } from "./useSimpleAuth";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Dashboard from "./pages/Dashboard";
-import Customers from "./pages/Customers";
-import CustomerForm from "./pages/CustomerForm";
-import Invoices from "./pages/Invoices";
-import InvoiceForm from "./pages/InvoiceForm";
-import InvoiceDetail from "./pages/InvoiceDetail";
+import Dashboard from "./Dashboard";
+import Customers from "./Customers";
+import CustomerForm from "./CustomerForm";
+import Invoices from "./Invoices";
+import InvoiceForm from "./InvoiceForm";
+import InvoiceDetail from "./InvoiceDetail";
 
 function Router() {
   const { isAuthenticated, isLoading } = useSimpleAuth();

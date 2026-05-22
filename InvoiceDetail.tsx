@@ -72,17 +72,17 @@ export default function InvoiceDetail() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "paid": return "text-green-600 bg-green-50";
-      case "overdue": return "text-red-600 bg-red-50";
-      case "sent": return "text-blue-600 bg-blue-50";
-      default: return "text-gray-600 bg-gray-50";
+      case "paid": return "text-emerald-700 bg-emerald-50 border-emerald-200";
+      case "overdue": return "text-red-700 bg-red-50 border-red-200";
+      case "sent": return "text-sky-700 bg-sky-50 border-sky-200";
+      default: return "text-stone-700 bg-stone-100 border-stone-200";
     }
   };
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="flex flex-col gap-4 rounded-lg border border-white/70 bg-white/85 p-5 shadow-sm md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
             <Link href="/invoices">
               <Button variant="ghost" size="icon">
@@ -108,22 +108,22 @@ export default function InvoiceDetail() {
           </div>
         </div>
 
-        <Card>
+        <Card className="overflow-hidden bg-white">
           <CardContent className="p-8">
-            <div className="flex justify-between items-start mb-8">
+            <div className="mb-8 flex flex-col justify-between gap-6 rounded-lg bg-[#201915] p-6 text-white md:flex-row md:items-start">
               <div>
-                <img src="/dada-logo.png" alt="Dada Restaurant" className="h-16 mb-4" />
+                <img src="/dada-logo.png" alt="Dada Restaurant" className="mb-4 h-16 rounded bg-white p-1" />
                 <h2 className="text-2xl font-bold">Dada Restaurant</h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-white/70">
                   Ireland<br />
                   www.dadarestaurant.ie
                 </p>
               </div>
               <div className="text-right">
-                <div className={`inline-block px-3 py-1 text-sm font-medium rounded-full mb-2 ${getStatusColor(invoice.status)}`}>
+                <div className={`mb-2 inline-block rounded-full border px-3 py-1 text-sm font-semibold ${getStatusColor(invoice.status)}`}>
                   {invoice.status.toUpperCase()}
                 </div>
-                <div className="text-sm text-muted-foreground space-y-1">
+                <div className="space-y-1 text-sm text-white/70">
                   <div>Issue Date: {format(new Date(invoice.issueDate), "dd MMM yyyy")}</div>
                   <div>Due Date: {format(new Date(invoice.dueDate), "dd MMM yyyy")}</div>
                 </div>
