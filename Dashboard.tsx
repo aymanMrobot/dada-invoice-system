@@ -21,7 +21,7 @@ export default function Dashboard() {
             <p className="mt-1 text-white/70">Live view of invoices, collections and B2B customer activity.</p>
           </div>
           <Link href="/invoices/new">
-            <Button size="lg" className="bg-white text-[#201915] hover:bg-white/90">
+            <Button size="lg" className="!bg-white !text-[#201915] hover:!bg-white/90">
               <FileText className="mr-2 h-4 w-4" />
               New Invoice
             </Button>
