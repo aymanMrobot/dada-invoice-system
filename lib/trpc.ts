@@ -169,9 +169,9 @@ const nextId = (items: { id: number }[]) => Math.max(0, ...items.map((item) => i
 
 const findCustomer = (store: Store, id: number) => store.customers.find((customer) => customer.id === id);
 
-const useQuery = <T,>(selector: (store: Store) => T, enabled = true) => {
+const useQuery = <T,>(selector: (store: Store) => T, enabled = true, deps: unknown[] = []) => {
   const store = useStore();
-  const data = useMemo(() => (enabled ? selector(store) : undefined), [enabled, store]);
+  const data = useMemo(() => (enabled ? selector(store) : undefined), [enabled, store, ...deps]);
   return { data, isLoading: false };
 };
 
@@ -209,7 +209,7 @@ export const trpc = {
     list: { useQuery: () => useQuery((store) => store.customers) },
     getById: {
       useQuery: (input: { id: number }, options?: { enabled?: boolean }) =>
-        useQuery((store) => findCustomer(store, input.id), options?.enabled ?? true),
+        useQuery((store) => findCustomer(store, input.id), options?.enabled ?? true, [input.id]),
     },
     create: {
       useMutation: (options?: { onSuccess?: () => void; onError?: () => void }) =>
@@ -227,11 +227,20 @@ export const trpc = {
     },
     delete: {
       useMutation: (options?: { onSuccess?: () => void; onError?: () => void }) =>
-        useMutation<{ id: number }>((input, store) => ({
-          ...store,
-          customers: store.customers.filter((customer) => customer.id !== input.id),
-          invoices: store.invoices.filter((invoice) => invoice.customerId !== input.id),
-        }), options),
+        useMutation<{ id: number }>((input, store) => {
+          const deletedInvoiceIds = new Set(
+            store.invoices.filter((invoice) => invoice.customerId === input.id).map((invoice) => invoice.id)
+          );
+          const invoiceItems = { ...store.invoiceItems };
+          deletedInvoiceIds.forEach((id) => delete invoiceItems[id]);
+
+          return {
+            ...store,
+            customers: store.customers.filter((customer) => customer.id !== input.id),
+            invoices: store.invoices.filter((invoice) => invoice.customerId !== input.id),
+            invoiceItems,
+          };
+        }, options),
     },
   },
   invoices: {
@@ -253,7 +262,7 @@ export const trpc = {
             customer: findCustomer(store, invoice.customerId),
             items: store.invoiceItems[invoice.id] || [],
           };
-        }, options?.enabled ?? true),
+        }, options?.enabled ?? true, [input.id]),
     },
     getNextNumber: {
       useQuery: (_input?: unknown, options?: { enabled?: boolean }) =>

@@ -7,6 +7,113 @@ import { Link, useParams } from "wouter";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
+type InvoiceData = NonNullable<ReturnType<typeof trpc.invoices.getById.useQuery>["data"]>;
+
+const escapePdfText = (value: string) => value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+
+const sanitizePdfText = (value: string | number | null | undefined) =>
+  escapePdfText(String(value ?? "").replace(/€/g, "EUR"));
+
+const wrapText = (text: string, maxLength: number) => {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxLength && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  });
+
+  if (current) lines.push(current);
+  return lines.length ? lines : [""];
+};
+
+const buildInvoicePdf = ({ invoice, customer, items }: InvoiceData) => {
+  const lines: { text: string; x: number; y: number; size?: number; bold?: boolean }[] = [];
+  let y = 800;
+
+  const add = (text: string, x = 50, size = 11, gap = 16, bold = false) => {
+    lines.push({ text, x, y, size, bold });
+    y -= gap;
+  };
+
+  add("Dada Restaurant", 50, 22, 28, true);
+  add("Invoice " + invoice.invoiceNumber, 50, 16, 24, true);
+  add("Status: " + invoice.status.toUpperCase(), 50, 11);
+  add("Issue date: " + format(new Date(invoice.issueDate), "dd MMM yyyy"), 50, 11);
+  add("Due date: " + format(new Date(invoice.dueDate), "dd MMM yyyy"), 50, 11, 24);
+
+  add("Bill To", 50, 14, 20, true);
+  add(customer?.companyName || "Unknown Customer");
+  if (customer?.contactName) add(customer.contactName);
+  [customer?.addressLine1, customer?.addressLine2, [customer?.city, customer?.county].filter(Boolean).join(", "), customer?.postcode, customer?.country]
+    .filter(Boolean)
+    .forEach((line) => add(line as string));
+  if (customer?.email) add("Email: " + customer.email);
+  if (customer?.phone) add("Phone: " + customer.phone);
+  if (customer?.taxId) add("VAT: " + customer.taxId);
+  y -= 10;
+
+  add("Items", 50, 14, 22, true);
+  add("Description                                      Qty      Unit       Amount", 50, 10, 16, true);
+  items?.forEach((item) => {
+    wrapText(item.description, 42).forEach((line, index) => {
+      const row =
+        index === 0
+          ? `${line.padEnd(45).slice(0, 45)} ${String(item.quantity).padStart(6)} ${("EUR " + item.unitPrice).padStart(12)} ${("EUR " + item.amount).padStart(12)}`
+          : line;
+      add(row, 50, 10, 14);
+    });
+  });
+
+  y -= 12;
+  add("Subtotal: EUR " + invoice.subtotal, 360, 11);
+  add("VAT (" + invoice.vatRate + "%): EUR " + invoice.vatAmount, 360, 11);
+  add("Total: EUR " + invoice.total, 360, 14, 24, true);
+
+  if (invoice.notes) {
+    add("Notes", 50, 14, 20, true);
+    wrapText(invoice.notes, 72).forEach((line) => add(line, 50, 10, 14));
+  }
+
+  const content = [
+    ...lines.map(
+      (line) =>
+        `BT /${line.bold ? "F2" : "F1"} ${line.size || 11} Tf 1 0 0 1 ${line.x} ${line.y} Tm (${sanitizePdfText(line.text)}) Tj ET`
+    ),
+  ].join("\n");
+
+  const objects = [
+    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+    "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>\nendobj\n",
+    "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+    "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n",
+    `6 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`,
+  ];
+
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object) => {
+    offsets.push(pdf.length);
+    pdf += object;
+  });
+
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+
+  return new Blob([pdf], { type: "application/pdf" });
+};
+
 export default function InvoiceDetail() {
   const params = useParams();
   const invoiceId = parseInt(params.id!);
@@ -14,18 +121,17 @@ export default function InvoiceDetail() {
 
   const handleDownloadPDF = async () => {
     try {
-      const response = await fetch(`/api/invoices/${invoiceId}/pdf`);
-      if (!response.ok) throw new Error("Failed to generate PDF");
-      
-      const blob = await response.blob();
+      if (!invoiceData) throw new Error("Invoice not loaded");
+
+      const blob = buildInvoicePdf(invoiceData);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${invoiceData?.invoice.invoiceNumber || "invoice"}.pdf`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       toast.success("PDF downloaded successfully");
     } catch (error) {
       toast.error("Failed to download PDF");
