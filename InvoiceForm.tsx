@@ -18,6 +18,12 @@ interface LineItem {
   amount: string;
 }
 
+const toDateInputValue = (value: string | Date | null | undefined, fallback = new Date()) => {
+  const date = new Date(value || fallback);
+  const safeDate = Number.isNaN(date.getTime()) ? fallback : date;
+  return safeDate.toISOString().split("T")[0];
+};
+
 export default function InvoiceForm() {
   const [, setLocation] = useLocation();
   const params = useParams();
@@ -56,12 +62,11 @@ export default function InvoiceForm() {
   useEffect(() => {
     if (invoiceData) {
       const invoice = invoiceData.invoice;
-      const customer = invoiceData.customer;
       setFormData({
         customerId: invoice.customerId.toString(),
         invoiceNumber: invoice.invoiceNumber,
-        issueDate: new Date(invoice.issueDate).toISOString().split("T")[0],
-        dueDate: new Date(invoice.dueDate).toISOString().split("T")[0],
+        issueDate: toDateInputValue(invoice.issueDate),
+        dueDate: toDateInputValue(invoice.dueDate),
         status: invoice.status,
         vatRate: invoice.vatRate,
         notes: invoice.notes || "",

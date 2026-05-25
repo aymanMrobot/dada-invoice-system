@@ -131,6 +131,25 @@ const readStore = (): Store => {
   }
 };
 
+const getStoreSnapshot = () => {
+  const seeded = JSON.stringify(seedStore);
+  if (typeof localStorage === "undefined") return seeded;
+
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) return saved;
+
+  localStorage.setItem(STORAGE_KEY, seeded);
+  return seeded;
+};
+
+const parseStoreSnapshot = (snapshot: string): Store => {
+  try {
+    return JSON.parse(snapshot) as Store;
+  } catch {
+    return seedStore;
+  }
+};
+
 const writeStore = (store: Store) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
   listeners.forEach((listener) => listener());
@@ -142,8 +161,8 @@ const subscribe = (listener: () => void) => {
 };
 
 const useStore = () => {
-  useSyncExternalStore(subscribe, () => localStorage.getItem(STORAGE_KEY) || "", () => "");
-  return readStore();
+  const snapshot = useSyncExternalStore(subscribe, getStoreSnapshot, () => JSON.stringify(seedStore));
+  return useMemo(() => parseStoreSnapshot(snapshot), [snapshot]);
 };
 
 const nextId = (items: { id: number }[]) => Math.max(0, ...items.map((item) => item.id)) + 1;
@@ -152,7 +171,8 @@ const findCustomer = (store: Store, id: number) => store.customers.find((custome
 
 const useQuery = <T,>(selector: (store: Store) => T, enabled = true) => {
   const store = useStore();
-  return { data: enabled ? selector(store) : undefined, isLoading: false };
+  const data = useMemo(() => (enabled ? selector(store) : undefined), [enabled, store]);
+  return { data, isLoading: false };
 };
 
 const useMutation = <TInput,>(
