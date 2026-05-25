@@ -14,23 +14,8 @@ export function useSimpleAuth() {
   });
 
   const checkAuth = useCallback(async () => {
-    try {
-      const response = await fetch("/api/auth/check", {
-        credentials: "include",
-      });
-      const data = await response.json();
-      setState({
-        isAuthenticated: data.authenticated,
-        isLoading: false,
-        error: null,
-      });
-    } catch (error) {
-      setState({
-        isAuthenticated: false,
-        isLoading: false,
-        error: "Failed to check authentication",
-      });
-    }
+    const isAuthenticated = localStorage.getItem("dada_auth") === "true";
+    setState({ isAuthenticated, isLoading: false, error: null });
   }, []);
 
   useEffect(() => {
@@ -38,20 +23,9 @@ export function useSimpleAuth() {
   }, [checkAuth]);
 
   const logout = useCallback(async () => {
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-      setState({
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-      });
-      window.location.href = "/";
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+    localStorage.removeItem("dada_auth");
+    setState({ isAuthenticated: false, isLoading: false, error: null });
+    window.location.href = "/";
   }, []);
 
   return {

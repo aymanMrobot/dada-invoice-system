@@ -1,4 +1,4 @@
 [build]
-command = "pnpm install --no-frozen-lockfile && pnpm add -D vite@7.1.7 vitest@2.1.4 vite-plugin-manus-runtime && pnpm build"
+command = "pnpm install --no-frozen-lockfile && pnpm build"
 publish = "dist/public"
 functions = "netlify/functions"

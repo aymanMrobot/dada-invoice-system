@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
@@ -17,6 +17,12 @@ interface LineItem {
   unitPrice: string;
   amount: string;
 }
+
+const toDateInputValue = (value: string | Date | null | undefined, fallback = new Date()) => {
+  const date = new Date(value || fallback);
+  const safeDate = Number.isNaN(date.getTime()) ? fallback : date;
+  return safeDate.toISOString().split("T")[0];
+};
 
 export default function InvoiceForm() {
   const [, setLocation] = useLocation();
@@ -56,12 +62,11 @@ export default function InvoiceForm() {
   useEffect(() => {
     if (invoiceData) {
       const invoice = invoiceData.invoice;
-      const customer = invoiceData.customer;
       setFormData({
         customerId: invoice.customerId.toString(),
         invoiceNumber: invoice.invoiceNumber,
-        issueDate: new Date(invoice.issueDate).toISOString().split("T")[0],
-        dueDate: new Date(invoice.dueDate).toISOString().split("T")[0],
+        issueDate: toDateInputValue(invoice.issueDate),
+        dueDate: toDateInputValue(invoice.dueDate),
         status: invoice.status,
         vatRate: invoice.vatRate,
         notes: invoice.notes || "",
@@ -182,14 +187,15 @@ export default function InvoiceForm() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="flex items-center gap-4 rounded-lg border border-white/70 bg-white/85 p-5 shadow-sm">
           <Link href="/invoices">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Invoice editor</p>
             <h1 className="text-3xl font-bold tracking-tight">
               {isEditing ? "Edit Invoice" : "New Invoice"}
             </h1>
@@ -201,7 +207,7 @@ export default function InvoiceForm() {
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
-            <Card>
+            <Card className="bg-white/90">
               <CardHeader>
                 <CardTitle>Invoice Details</CardTitle>
                 <CardDescription>Basic information about the invoice</CardDescription>
@@ -273,7 +279,7 @@ export default function InvoiceForm() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-white/90">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -288,7 +294,7 @@ export default function InvoiceForm() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {lineItems.map((item, index) => (
-                  <div key={index} className="flex gap-4 items-start">
+                  <div key={index} className="grid gap-4 rounded-md border border-border/70 bg-stone-50/50 p-4 lg:grid-cols-[1fr_auto] lg:items-start">
                     <div className="flex-1 grid gap-4 md:grid-cols-4">
                       <div className="md:col-span-2 space-y-2">
                         <Label>Description</Label>
@@ -320,7 +326,7 @@ export default function InvoiceForm() {
                         />
                       </div>
                     </div>
-                    <div className="flex items-end gap-2">
+                    <div className="flex items-end gap-2 lg:justify-end">
                       <div className="text-right pt-8">
                         <div className="font-semibold">€{item.amount}</div>
                       </div>
@@ -339,7 +345,7 @@ export default function InvoiceForm() {
                   </div>
                 ))}
 
-                <div className="border-t pt-4 space-y-2">
+                <div className="ml-auto max-w-sm space-y-2 rounded-md border border-border/70 bg-white p-4 shadow-sm">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
                     <span className="font-medium">€{totals.subtotal}</span>
@@ -366,7 +372,7 @@ export default function InvoiceForm() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-white/90">
               <CardHeader>
                 <CardTitle>Additional Notes</CardTitle>
               </CardHeader>
@@ -382,6 +388,7 @@ export default function InvoiceForm() {
 
             <div className="flex gap-4">
               <Button type="submit" disabled={isPending}>
+                <Save className="h-4 w-4" />
                 {isPending ? "Saving..." : isEditing ? "Update Invoice" : "Create Invoice"}
               </Button>
               <Link href="/invoices">
